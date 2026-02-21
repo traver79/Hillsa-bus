@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#1a1a2e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Hillsa Bus">
+  <link rel="manifest" href="manifest.json">
+  <title>🚌 Hillsa — BCN → St. Sadurní</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0d0d1a;
+      --card: #161628;
+      --card2: #1e1e35;
+      --accent: #f0c040;
+      --text: #f0ede8;
+      --muted: #7a7a9a;
+      --border: rgba(255,255,255,0.07);
+      --green: #4ade80;
+      --red: #f87171;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100dvh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .app { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; padding: 0 0 110px; }
+
+    header {
+      padding: 24px 20px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      font-family: 'Space Mono', monospace;
+      font-size: 14px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .logo span { color: var(--accent); }
+    .route-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+      font-family: 'Space Mono', monospace;
+    }
+
+    .clock { text-align: right; }
+    .clock-time {
+      font-family: 'Space Mono', monospace;
+      font-size: 22px;
+      color: var(--accent);
+      letter-spacing: -1px;
+    }
+    .clock-date {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+      font-family: 'Space Mono', monospace;
+    }
+
+    /* HERO */
+    .next-bus-card {
+      margin: 16px 16px 0;
+      background: linear-gradient(135deg, #1e1e38 0%, #16162a 100%);
+      border: 1px solid rgba(240,192,64,0.25);
+      border-radius: 22px;
+      padding: 22px 22px 18px;
+      position: relative;
+      overflow: hidden;
+    }
+    .next-bus-card::after {
+      content: '';
+      position: absolute;
+      top: -50px; right: -50px;
+      width: 160px; height: 160px;
+      background: radial-gradient(circle, rgba(240,192,64,0.1) 0%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .next-label {
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-family: 'Space Mono', monospace;
+      margin-bottom: 6px;
+    }
+
+    .next-time {
+      font-family: 'Space Mono', monospace;
+      font-size: 72px;
+      font-weight: 700;
+      color: var(--accent);
+      line-height: 1;
+      letter-spacing: -3px;
+    }
+
+    .next-row2 {
+      margin-top: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .badge-green {
+      background: rgba(74,222,128,0.12);
+      border: 1px solid rgba(74,222,128,0.3);
+      color: var(--green);
+      font-size: 13px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+
+    .countdown {
+      font-family: 'Space Mono', monospace;
+      font-size: 15px;
+      color: var(--text);
+    }
+    .countdown .mins {
+      color: var(--accent);
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .alarm-btn-hero {
+      margin-top: 16px;
+      width: 100%;
+      padding: 15px;
+      background: var(--accent);
+      color: #0d0d1a;
+      border: none;
+      border-radius: 13px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: transform 0.1s, opacity 0.15s;
+    }
+    .alarm-btn-hero:active { transform: scale(0.97); opacity: 0.88; }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 20px 16px 8px;
+    }
+    .section-header-text {
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-family: 'Space Mono', monospace;
+      white-space: nowrap;
+    }
+    .section-line { flex: 1; height: 1px; background: var(--border); }
+
+    .schedule-list {
+      padding: 0 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .bus-row {
+      display: flex;
+      align-items: center;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .bus-row:active { transform: scale(0.98); }
+    .bus-row.past { opacity: 0.28; }
+    .bus-row.next-highlight {
+      border-color: rgba(240,192,64,0.45);
+      background: linear-gradient(90deg, rgba(240,192,64,0.07) 0%, var(--card) 60%);
+    }
+    .bus-row.next-highlight::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 4px;
+      background: var(--accent);
+      border-radius: 4px 0 0 4px;
+    }
+
+    .bus-depart {
+      font-family: 'Space Mono', monospace;
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--text);
+      min-width: 72px;
+      letter-spacing: -0.5px;
+    }
+    .bus-row.past .bus-depart { color: var(--muted); }
+
+    .bus-mid { flex: 1; padding: 0 10px; }
+    .bus-arrow { font-size: 13px; color: var(--muted); margin-bottom: 2px; }
+    .bus-arrive-text {
+      font-family: 'Space Mono', monospace;
+      font-size: 18px;
+      color: var(--muted);
+    }
+    .bus-mins-away {
+      font-size: 13px;
+      color: var(--green);
+      font-weight: 600;
+      margin-top: 2px;
+    }
+
+    .bus-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 5px;
+    }
+    .bus-duration {
+      font-size: 12px;
+      color: var(--muted);
+      background: var(--card2);
+      padding: 3px 9px;
+      border-radius: 8px;
+    }
+    .alarm-icon { font-size: 18px; opacity: 0.3; transition: opacity 0.2s; }
+    .bus-row:active .alarm-icon { opacity: 1; }
+    .alarm-icon.set { opacity: 1; }
+
+    /* PAST SECTION */
+    .past-divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 16px 8px;
+      cursor: pointer;
+    }
+    .past-divider-line { flex: 1; height: 1px; background: var(--border); }
+    .past-divider-text {
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-family: 'Space Mono', monospace;
+      white-space: nowrap;
+    }
+    .past-toggle {
+      font-size: 11px;
+      color: var(--muted);
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-family: 'Space Mono', monospace;
+    }
+    .past-section { overflow: hidden; transition: max-height 0.4s ease; }
+
+    .last-updated {
+      text-align: center;
+      font-size: 10px;
+      color: var(--muted);
+      font-family: 'Space Mono', monospace;
+      padding: 16px 0 4px;
+      opacity: 0.5;
+    }
+
+    /* MODAL */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.72);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal {
+      width: 100%;
+      max-width: 480px;
+      background: var(--card2);
+      border-radius: 26px 26px 0 0;
+      padding: 20px 22px 44px;
+      border: 1px solid var(--border);
+      border-bottom: none;
+      transform: translateY(100%);
+      transition: transform 0.35s cubic-bezier(0.34, 1.4, 0.64, 1);
+    }
+    .modal-overlay.open .modal { transform: translateY(0); }
+    .modal-drag { width: 44px; height: 5px; background: rgba(255,255,255,0.12); border-radius: 5px; margin: 0 auto 20px; }
+    .modal-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+    .modal-sub { font-size: 14px; color: var(--muted); margin-bottom: 6px; }
+    .modal-time-big {
+      font-family: 'Space Mono', monospace;
+      font-size: 56px;
+      color: var(--accent);
+      text-align: center;
+      margin: 10px 0 16px;
+      letter-spacing: -2px;
+      font-weight: 700;
+    }
+    .alarm-label { font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+    .alarm-options {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .alarm-opt {
+      padding: 12px 6px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+    }
+    .alarm-opt.selected {
+      background: rgba(240,192,64,0.15);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .btn-primary {
+      width: 100%; padding: 16px;
+      background: var(--accent); color: #0d0d1a;
+      border: none; border-radius: 14px;
+      font-size: 16px; font-weight: 700;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer; margin-bottom: 10px;
+    }
+    .btn-secondary {
+      width: 100%; padding: 14px;
+      background: transparent; color: var(--muted);
+      border: 1px solid var(--border); border-radius: 14px;
+      font-size: 14px; font-family: 'DM Sans', sans-serif; cursor: pointer;
+    }
+
+    /* TOAST */
+    .toast {
+      position: fixed;
+      bottom: 90px; left: 50%;
+      transform: translateX(-50%) translateY(16px);
+      background: var(--green); color: #0d0d1a;
+      padding: 11px 22px; border-radius: 30px;
+      font-weight: 700; font-size: 14px;
+      opacity: 0; transition: all 0.3s;
+      z-index: 200; white-space: nowrap; pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* BOTTOM NAV */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: rgba(13,13,26,0.94);
+      backdrop-filter: blur(18px);
+      border-top: 1px solid var(--border);
+      display: flex;
+      padding: 10px 0 22px;
+      z-index: 50;
+    }
+    .nav-btn {
+      flex: 1; background: none; border: none;
+      color: var(--muted); font-size: 11px;
+      font-family: 'DM Sans', sans-serif; font-weight: 500;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      cursor: pointer; transition: color 0.2s;
+    }
+    .nav-btn .icon { font-size: 24px; }
+    .nav-btn.active { color: var(--accent); }
+
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* ALARMS PAGE */
+    .alarm-list { padding: 0 16px; display: flex; flex-direction: column; gap: 8px; }
+    .alarm-item {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 16px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .alarm-item-time { font-family: 'Space Mono', monospace; font-size: 28px; color: var(--accent); }
+    .alarm-item-sub { font-size: 13px; color: var(--muted); margin-top: 3px; }
+    .alarm-delete {
+      background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.25);
+      color: var(--red); border-radius: 10px; padding: 8px 14px;
+      font-size: 13px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-weight: 600;
+    }
+    .empty-state {
+      text-align: center; padding: 60px 20px;
+      color: var(--muted); font-size: 15px;
+    }
+    .empty-state .icon { font-size: 52px; margin-bottom: 14px; }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div>
+      <div class="logo">🚌 <span>Hillsa</span> Bus</div>
+      <div class="route-label">BCN → St. Sadurní d'Anoia</div>
+    </div>
+    <div class="clock">
+      <div class="clock-time" id="live-time">--:--:--</div>
+      <div class="clock-date" id="live-date">--</div>
+    </div>
+  </header>
+
+  <!-- PAGE HORARIS -->
+  <div class="page active" id="page-horaris">
+
+    <div class="next-bus-card">
+      <div class="next-label">Proper autobús</div>
+      <div class="next-time" id="next-time-display">--:--</div>
+      <div class="next-row2">
+        <div class="badge-green">Arriba: <span id="next-arrive">--:--</span></div>
+        <div class="countdown">En <span class="mins" id="next-mins">--</span> min</div>
+      </div>
+      <button class="alarm-btn-hero" onclick="openAlarmModal('next')">
+        ⏰ Posar alarma per aquest bus
+      </button>
+    </div>
+
+    <div class="section-header">
+      <div class="section-header-text">Propers serveis</div>
+      <div class="section-line"></div>
+    </div>
+    <div class="schedule-list" id="list-upcoming"></div>
+
+    <div class="past-divider" onclick="togglePast()">
+      <div class="past-divider-line"></div>
+      <div class="past-divider-text">Serveis anteriors</div>
+      <div class="past-toggle" id="past-toggle-btn">▼ veure</div>
+      <div class="past-divider-line"></div>
+    </div>
+    <div class="past-section" id="past-section" style="max-height:0">
+      <div class="schedule-list" id="list-past" style="padding-bottom:8px"></div>
+    </div>
+
+    <div class="last-updated" id="last-updated"></div>
+  </div>
+
+  <!-- PAGE ALARMES -->
+  <div class="page" id="page-alarmes">
+    <div class="section-header" style="padding-top:24px;">
+      <div class="section-header-text">Les meves alarmes</div>
+      <div class="section-line"></div>
+    </div>
+    <div class="alarm-list" id="alarm-list"></div>
+  </div>
+
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <button class="nav-btn active" id="nav-horaris" onclick="showPage('horaris')">
+    <span class="icon">🚌</span><span>Horaris</span>
+  </button>
+  <button class="nav-btn" id="nav-alarmes" onclick="showPage('alarmes')">
+    <span class="icon">⏰</span><span>Alarmes</span>
+  </button>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <div class="modal-drag"></div>
+    <div class="modal-title">⏰ Configurar alarma</div>
+    <div class="modal-sub">Barcelona → Sant Sadurní d'Anoia</div>
+    <div class="modal-time-big" id="modal-time">--:--</div>
+    <div class="alarm-label">Avisar-me amb antelació:</div>
+    <div class="alarm-options">
+      <div class="alarm-opt selected" data-mins="5">5 min</div>
+      <div class="alarm-opt" data-mins="10">10 min</div>
+      <div class="alarm-opt" data-mins="15">15 min</div>
+      <div class="alarm-opt" data-mins="30">30 min</div>
+    </div>
+    <button class="btn-primary" onclick="confirmAlarm()">✓ Activar alarma</button>
+    <button class="btn-secondary" onclick="closeModalAll()">Cancel·lar</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SCHEDULE = [
+  ['06:45','07:15'],['07:20','08:00'],['07:30','08:15'],
+  ['08:00','08:45'],['08:45','09:30'],['09:15','10:00'],
+  ['09:30','10:15'],['09:45','10:30'],['10:30','11:15'],
+  ['12:15','13:00'],['12:30','13:15'],['13:30','14:15'],
+  ['14:30','15:15'],['15:00','15:45'],['15:30','16:15'],
+  ['16:00','16:45'],['16:30','17:15'],['17:00','17:45'],
+  ['17:30','18:15'],['18:00','18:45'],['18:15','19:00'],
+  ['19:00','19:45'],['19:30','20:15'],['20:30','21:15'],
+  ['21:15','22:00'],
+];
+
+let selectedBus = null;
+let modalBusIdx = null;
+let selectedMins = 5;
+let alarms = [];
+let alarmTimers = [];
+let pastOpen = false;
+
+try { alarms = JSON.parse(localStorage.getItem('hillsa_alarms') || '[]'); } catch(e) {}
+
+function timeToMins(str) {
+  const [h,m] = str.split(':').map(Number);
+  return h * 60 + m;
+}
+function currentMins() {
+  const n = new Date();
+  return n.getHours() * 60 + n.getMinutes();
+}
+function minsUntil(t) { return timeToMins(t) - currentMins(); }
+
+function formatDay(d) {
+  const days = ['Diumenge','Dilluns','Dimarts','Dimecres','Dijous','Divendres','Dissabte'];
+  const months = ['gen','feb','mar','abr','mai','jun','jul','ago','set','oct','nov','des'];
+  return `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}`;
+}
+
+function updateClock() {
+  const n = new Date();
+  const pad = x => String(x).padStart(2,'0');
+  document.getElementById('live-time').textContent = `${pad(n.getHours())}:${pad(n.getMinutes())}:${pad(n.getSeconds())}`;
+  document.getElementById('live-date').textContent = formatDay(n);
+}
+
+function render() {
+  const upcoming = SCHEDULE.filter(([dep]) => minsUntil(dep) > -1);
+  const past     = SCHEDULE.filter(([dep]) => minsUntil(dep) <= -1);
+  const nextBus  = upcoming[0] || null;
+
+  // Hero
+  if (nextBus) {
+    document.getElementById('next-time-display').textContent = nextBus[0];
+    document.getElementById('next-arrive').textContent = nextBus[1];
+    document.getElementById('next-mins').textContent = minsUntil(nextBus[0]);
+    selectedBus = nextBus;
+  } else {
+    document.getElementById('next-time-display').textContent = 'Fi dia';
+    document.getElementById('next-arrive').textContent = '--';
+    document.getElementById('next-mins').textContent = '--';
+    selectedBus = null;
+  }
+
+  // Upcoming
+  const upEl = document.getElementById('list-upcoming');
+  upEl.innerHTML = '';
+  upcoming.forEach((bus, i) => upEl.appendChild(buildRow(bus, SCHEDULE.indexOf(bus), i === 0, false)));
+
+  // Past (reversed: most recent first)
+  const pastEl = document.getElementById('list-past');
+  pastEl.innerHTML = '';
+  [...past].reverse().forEach(bus => pastEl.appendChild(buildRow(bus, SCHEDULE.indexOf(bus), false, true)));
+
+  // Reopen past if it was open
+  if (pastOpen) {
+    const sec = document.getElementById('past-section');
+    sec.style.maxHeight = sec.scrollHeight + 500 + 'px';
+  }
+
+  // Timestamp
+  const n = new Date();
+  const pad = x => String(x).padStart(2,'0');
+  document.getElementById('last-updated').textContent =
+    `Actualitzat: ${pad(n.getHours())}:${pad(n.getMinutes())}:${pad(n.getSeconds())}`;
+}
+
+function buildRow(bus, schedIdx, isNext, isPast) {
+  const [dep, arr] = bus;
+  const mins = minsUntil(dep);
+  const hasAlarm = alarms.find(a => a.dep === dep);
+
+  const row = document.createElement('div');
+  row.className = `bus-row${isNext ? ' next-highlight' : ''}${isPast ? ' past' : ''}`;
+  row.onclick = () => openAlarmModal(schedIdx);
+
+  const minsLabel = (!isPast && mins <= 90)
+    ? `<div class="bus-mins-away">en ${mins} min</div>` : '';
+
+  row.innerHTML = `
+    <div class="bus-depart">${dep}</div>
+    <div class="bus-mid">
+      <div class="bus-arrow">→ St. Sadurní</div>
+      <div class="bus-arrive-text">${arr}</div>
+      ${minsLabel}
+    </div>
+    <div class="bus-right">
+      <div class="bus-duration">~45'</div>
+      <div class="alarm-icon${hasAlarm ? ' set' : ''}">${hasAlarm ? '⏰' : '🔔'}</div>
+    </div>
+  `;
+  return row;
+}
+
+function togglePast() {
+  pastOpen = !pastOpen;
+  const sec = document.getElementById('past-section');
+  const btn = document.getElementById('past-toggle-btn');
+  sec.style.maxHeight = pastOpen ? sec.scrollHeight + 500 + 'px' : '0';
+  btn.textContent = pastOpen ? '▲ amagar' : '▼ veure';
+}
+
+function openAlarmModal(idx) {
+  const bus = idx === 'next' ? selectedBus : SCHEDULE[idx];
+  modalBusIdx = idx === 'next' ? SCHEDULE.indexOf(selectedBus) : idx;
+  if (!bus) return;
+  document.getElementById('modal-time').textContent = bus[0];
+  document.getElementById('modal').classList.add('open');
+}
+function closeModalOutside(e) {
+  if (e.target === document.getElementById('modal')) closeModalAll();
+}
+function closeModalAll() {
+  document.getElementById('modal').classList.remove('open');
+}
+
+document.querySelectorAll('.alarm-opt').forEach(opt => {
+  opt.onclick = () => {
+    document.querySelectorAll('.alarm-opt').forEach(o => o.classList.remove('selected'));
+    opt.classList.add('selected');
+    selectedMins = parseInt(opt.dataset.mins);
+  };
+});
+
+function confirmAlarm() {
+  const bus = SCHEDULE[modalBusIdx];
+  if (!bus) return;
+  const [dep, arr] = bus;
+  const alarmMinsTotal = timeToMins(dep) - selectedMins;
+  const alarmH = Math.floor(((alarmMinsTotal % 1440) + 1440) % 1440 / 60);
+  const alarmM = ((alarmMinsTotal % 60) + 60) % 60;
+
+  alarms = alarms.filter(a => a.dep !== dep);
+  const alarm = { id: Date.now(), dep, arr, alarmH, alarmM, minutesBefore: selectedMins };
+  alarms.push(alarm);
+  saveAlarms();
+  scheduleAlarmTimer(alarm);
+  closeModalAll();
+  const pad = x => String(x).padStart(2,'0');
+  showToast(`⏰ Alarma ${pad(alarmH)}:${pad(alarmM)} — ${selectedMins} min abans del bus`);
+  render();
+  renderAlarmList();
+}
+
+function scheduleAlarmTimer(alarm) {
+  const n = new Date();
+  const nowMins = n.getHours() * 60 + n.getMinutes();
+  const alarmMins = alarm.alarmH * 60 + alarm.alarmM;
+  const diffMs = (alarmMins - nowMins) * 60000 - n.getSeconds() * 1000;
+  if (diffMs <= 0) return;
+  const t = setTimeout(() => fireAlarm(alarm), diffMs);
+  alarmTimers.push({ id: alarm.id, timer: t });
+}
+
+function fireAlarm(alarm) {
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification(`🚌 Bus ${alarm.dep} — BCN→St.Sadurní`, {
+      body: `Surt en ${alarm.minutesBefore} minuts! Prepara't!`,
+    });
+  }
+  if ('vibrate' in navigator) navigator.vibrate([400, 150, 400, 150, 400]);
+  showToast(`🚌 Bus ${alarm.dep} surt en ${alarm.minutesBefore} min!`);
+  alarms = alarms.filter(a => a.id !== alarm.id);
+  saveAlarms();
+  renderAlarmList();
+  render();
+}
+
+function scheduleAllAlarms() { alarms.forEach(scheduleAlarmTimer); }
+
+function renderAlarmList() {
+  const list = document.getElementById('alarm-list');
+  if (!alarms.length) {
+    list.innerHTML = `<div class="empty-state"><div class="icon">⏰</div><div>Cap alarma configurada</div><div style="margin-top:8px;font-size:13px">Toca qualsevol bus per afegir-ne una</div></div>`;
+    return;
+  }
+  list.innerHTML = '';
+  const pad = x => String(x).padStart(2,'0');
+  [...alarms].sort((a,b) => timeToMins(a.dep) - timeToMins(b.dep)).forEach(alarm => {
+    const item = document.createElement('div');
+    item.className = 'alarm-item';
+    item.innerHTML = `
+      <div>
+        <div class="alarm-item-time">⏰ ${pad(alarm.alarmH)}:${pad(alarm.alarmM)}</div>
+        <div class="alarm-item-sub">Bus ${alarm.dep}→${alarm.arr} (${alarm.minutesBefore} min abans)</div>
+      </div>
+      <button class="alarm-delete" onclick="deleteAlarm(${alarm.id})">✕ Eliminar</button>
+    `;
+    list.appendChild(item);
+  });
+}
+
+function deleteAlarm(id) {
+  alarmTimers.filter(t => t.id === id).forEach(t => clearTimeout(t.timer));
+  alarmTimers = alarmTimers.filter(t => t.id !== id);
+  alarms = alarms.filter(a => a.id !== id);
+  saveAlarms();
+  renderAlarmList();
+  render();
+  showToast('Alarma eliminada');
+}
+
+function saveAlarms() {
+  try { localStorage.setItem('hillsa_alarms', JSON.stringify(alarms)); } catch(e) {}
+}
+
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`page-${page}`).classList.add('active');
+  document.getElementById(`nav-${page}`).classList.add('active');
+  if (page === 'alarmes') renderAlarmList();
+}
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// INIT
+updateClock();
+setInterval(updateClock, 1000);
+setInterval(render, 60000); // actualitza cada minut
+
+if ('Notification' in window && Notification.permission === 'default') {
+  Notification.requestPermission();
+}
+
+scheduleAllAlarms();
+render();
+renderAlarmList();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
